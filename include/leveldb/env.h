@@ -97,6 +97,8 @@ class LEVELDB_EXPORT Env {
   virtual Status NewWritableFile(const std::string& fname,
                                  WritableFile** result) = 0;
 
+  virtual Status NewMmapWritableFile(const std::string& fname,
+                                 WritableFile** result) = 0;
   // Create an object that either appends to an existing file, or
   // writes to a new file (if the file does not exist to begin with).
   // On success, stores a pointer to the new file in *result and
@@ -322,6 +324,9 @@ class LEVELDB_EXPORT EnvWrapper : public Env {
   }
   Status NewWritableFile(const std::string& f, WritableFile** r) override {
     return target_->NewWritableFile(f, r);
+  }
+  Status NewMmapWritableFile(const std::string& f, WritableFile** r) override {
+    return target_->NewMmapWritableFile(f, r);
   }
   Status NewAppendableFile(const std::string& f, WritableFile** r) override {
     return target_->NewAppendableFile(f, r);

@@ -16,6 +16,11 @@ set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
+# debug
+#SET(CMAKE_BUILD_TYPE "Debug")
+#SET(CMAKE_CXX_FLAGS_DEBUG "$ENV{CXXFLAGS} -O0 -Wall -g -ggdb")
+#SET(CMAKE_CXX_FLAGS_RELEASE "$ENV{CXXFLAGS} -O3 -Wall")
+
 if (WIN32)
   set(LEVELDB_PLATFORM_NAME LEVELDB_PLATFORM_WINDOWS)
   # TODO(cmumford): Make UNICODE configurable for Windows.
@@ -254,6 +259,8 @@ endif(HAVE_TCMALLOC)
 # Needed by port_stdcxx.h
 find_package(Threads REQUIRED)
 target_link_libraries(leveldb Threads::Threads)
+target_link_libraries(leveldb pmem)
+target_link_libraries(leveldb pthread)
 
 add_executable(leveldbutil
   "${PROJECT_SOURCE_DIR}/db/leveldbutil.cc"

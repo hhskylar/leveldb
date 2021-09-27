@@ -1512,7 +1512,9 @@ Status DB::Open(const Options& options, const std::string& dbname,
     // Create new log and a corresponding memtable.
     uint64_t new_log_number = impl->versions_->NewFileNumber();
     WritableFile* lfile;
-    s = options.env->NewWritableFile(LogFileName(dbname, new_log_number),
+    //s = options.env->NewWritableFile(LogFileName(dbname, new_log_number),
+    //                                 &lfile);
+    s = options.env->NewMmapWritableFile(LogFileName(dbname, new_log_number),
                                      &lfile);
     if (s.ok()) {
       edit.SetLogNumber(new_log_number);
