@@ -249,7 +249,7 @@ class PosixMmapWriteableFile final : public WritableFile {
         : filename_(fname),
           fd_(fd),
           page_size_(page_size),
-          map_size_(Roundup(1 << 29/*512MB*/, page_size_)),
+          map_size_(Roundup(1 << 29 /*512MB*/, page_size_)),
           base_(nullptr),
           limit_(nullptr),
           dst_(nullptr),
@@ -263,13 +263,14 @@ class PosixMmapWriteableFile final : public WritableFile {
             size_t avail = limit_ - dst_;
             if (avail == 0) {
                 Status s = MapNewRegion();
-                 if (!s.ok()) {
+                if (!s.ok()) {
                     return s;
                 }
             }
 
             size_t copy_size = left <= avail ? left : avail;
             pmem_memcpy_nodrain(dst_, src, copy_size);
+            //pmem_memcpy(dst_, src, copy_size, PMEM_F_MEM_NONTEMPORAL);
             file_offset_ += copy_size;
             dst_ += copy_size;
             src += copy_size;
@@ -282,20 +283,20 @@ class PosixMmapWriteableFile final : public WritableFile {
         size_t unused = limit_ - dst_;
         if (unused > 0) {
             if (ftruncate(fd_, file_offset_) < 0) {
-                printf("While ftruncating dcpmm mmaped file");
+                printf("While ftruncating dcpmm mmaped file\n");
                 return Status::IOError("ftruncating");
             }
         }
 
         if (close(fd_) < 0) {
-            printf("While ftruncating dcpmm mmaped file");
+            printf("close  mmaped file\n");
             return Status::IOError("close error");
         }
 
+        pmem_unmap(base_, file_offset_);
         fd_ = -1;
         base_ = nullptr;
         limit_ = nullptr;
-        pmem_unmap(base_, file_offset_);
         return Status::OK();
     }
 
@@ -324,17 +325,18 @@ class PosixMmapWriteableFile final : public WritableFile {
 
     Status MapNewRegion() {
         size_t mmap_len;
-        int is_pmem=-2;
+        int is_pmem = -2;
         base_ =
             (char*)pmem_map_file(filename_.c_str(), file_offset_ + map_size_,
                                  PMEM_FILE_CREATE|PMEM_FILE_EXCL, 0666, &mmap_len, &is_pmem);
         printf("filepath %s map len %lu\n", filename_.c_str(), mmap_len);
         if (base_ == nullptr) {
             base_ = (char*)pmem_map_file(
-                filename_.c_str(), file_offset_ + map_size_, PMEM_FILE_CREATE|PMEM_FILE_EXCL,
+                filename_.c_str(), file_offset_ + map_size_, PMEM_FILE_EXCL,
                 0666, &mmap_len, &is_pmem);
             if (base_ == nullptr) {
-                printf("MapNewRegion Error is_pmem %d len %lu filename %s\n", is_pmem, file_offset_ + map_size_, filename_.c_str());
+                printf("MapNewRegion Error is_pmem %d len %lu filename %s\n",
+                       is_pmem, file_offset_ + map_size_, filename_.c_str());
                 return Status::IOError("error!");
             }
         }
@@ -647,9 +649,13 @@ class PosixEnv : public Env {
 
     Status NewMmapWritableFile(const std::string& filename,
                                WritableFile** result) override {
-        *result = nullptr;
-        printf("env_posix NewMmapWriteableFile\n");
-        *result = new PosixMmapWriteableFile(filename, 9, 4096);
+       // int fd = ::open(filename.c_str(), O_TRUNC | O_WRONLY | O_CREAT, 0644);
+       // if (fd < 0) {
+       //     *result = nullptr;
+       //     return PosixError(filename, errno);
+       // }
+        int fd = 0;
+        *result = new PosixMmapWriteableFile(filename, fd, 4096);
         return Status::OK();
     }
 
